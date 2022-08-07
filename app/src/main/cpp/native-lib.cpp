@@ -214,9 +214,7 @@ void *sub_thread_process(void *args) {
     }
 
 // 5. 结束线程
-    ::jvm->
-
-            DetachCurrentThread();
+    ::jvm->DetachCurrentThread();
 
     LOGD("Sub thread finished.");
 

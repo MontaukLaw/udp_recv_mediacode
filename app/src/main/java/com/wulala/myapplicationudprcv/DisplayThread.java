@@ -23,7 +23,7 @@ public class DisplayThread implements Runnable {
     public DisplayThread(MediaCodec codec, H264FrameProducer h264FrameProducer) {
         this.mediaCodec = codec;
         freeInputBuffers = new LinkedBlockingDeque<>();
-        this. h264FrameProducer = h264FrameProducer;
+        this.h264FrameProducer = h264FrameProducer;
         initCodec();
     }
 
@@ -61,30 +61,27 @@ public class DisplayThread implements Runnable {
     public void run() {
 
         while (!Thread.interrupted()) {
-            // while (!Thread.interrupted()) {
+            // Log.d(TAG, "run: ");
             try {
-                Thread.sleep(1);
+                Thread.sleep(2);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-            Log.d(TAG, "run: ");
             byte[] frameData = null;
             int inputIndex = -1;
 
             try {
 
                 if (h264FrameProducer.getQueueNumber() > 0) {
-
+                    Log.d(TAG, "inputIndex: before: " + inputIndex);
                     inputIndex = freeInputBuffers.take();
-                    Log.d(TAG, "take data");
+                    Log.d(TAG, "inputIndex: after: " + inputIndex);
                     frameData = h264FrameProducer.takeFrameFromQueue();
                     if (frameData == null) {
                         continue;
                     }
-                    Log.d(TAG, "inputIndex: " + inputIndex);
-                } else {
-                    Log.d(TAG, "h264FrameProducer is empty");
+                    // Log.d(TAG, "inputIndex: " + inputIndex);
                 }
 
             } catch (InterruptedException e) {

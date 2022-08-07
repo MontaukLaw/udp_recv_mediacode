@@ -17,23 +17,16 @@ public class H264FrameProducer {
 
     public void addFrameToQueue(byte[] frameData) {
 
-        // Log.d(TAG, "addFrameToQueue: " + frameData.length);
+        // 加入缓存列表
         h264FrameQueue.add(frameData);
-        Log.d(TAG, "h264FrameQueue size" + h264FrameQueue.size());
-//        try {
-//            h264FrameQueue.put(frameData);
-//            Log.d(TAG, "h264FrameQueue size" + h264FrameQueue.size());
-//
-//        } catch (InterruptedException ie) {
-//            ie.printStackTrace();
-//        }
+
     }
 
     public byte[] takeFrameFromQueue() {
         byte[] frame = null;
 
         try {
-            Log.d(TAG, "h264FrameQueue size: " + h264FrameQueue.size());
+            // Log.d(TAG, "h264FrameQueue size: " + h264FrameQueue.size());
             // frame = h264FrameQueue.take(); // take();
             frame = h264FrameQueue.poll(1, TimeUnit.MILLISECONDS);
 
