@@ -1,37 +1,25 @@
 package com.wulala.myapplicationudprcv;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.SurfaceTexture;
 import android.media.MediaCodec;
-import android.media.MediaCodecInfo;
-import android.media.MediaFormat;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 
 import com.wulala.myapplicationudprcv.databinding.ActivityMainBinding;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, TextureView.SurfaceTextureListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    TextureView vedioView;
+    TextureView videoView;
     private MediaCodec mediaCodec;
 
     private SurfaceTexture surfaceTexture;
@@ -61,8 +49,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn.setOnClickListener(this);
 
 
-        vedioView = binding.textureVideoView;
-        vedioView.setSurfaceTextureListener(this);
+        videoView = binding.textureVideoView;
+        videoView.setSurfaceTextureListener(this);
 
         try {
             mediaCodec = MediaCodec.createDecoderByType("video/avc");

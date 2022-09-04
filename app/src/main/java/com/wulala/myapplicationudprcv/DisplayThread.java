@@ -33,13 +33,13 @@ public class DisplayThread implements Runnable {
 
             @Override
             public void onInputBufferAvailable(MediaCodec codec, int index) {
-                Log.d(TAG, "onInputBufferAvailable: " + index);
+                // Log.d(TAG, "onInputBufferAvailable: " + index);
                 freeInputBuffers.add(index);
             }
 
             @Override
             public void onOutputBufferAvailable(@NonNull MediaCodec codec, int index, @NonNull MediaCodec.BufferInfo info) {
-                Log.d(TAG, "onOutputBufferAvailable: " + index);
+                // Log.d(TAG, "onOutputBufferAvailable: " + index);
                 mediaCodec.releaseOutputBuffer(index, true);
             }
 
@@ -74,9 +74,9 @@ public class DisplayThread implements Runnable {
             try {
 
                 if (h264FrameProducer.getQueueNumber() > 0) {
-                    Log.d(TAG, "inputIndex: before: " + inputIndex);
+                    // Log.d(TAG, "inputIndex: before: " + inputIndex);
                     inputIndex = freeInputBuffers.take();
-                    Log.d(TAG, "inputIndex: after: " + inputIndex);
+                    // Log.d(TAG, "inputIndex: after: " + inputIndex);
                     frameData = h264FrameProducer.takeFrameFromQueue();
                     if (frameData == null) {
                         continue;

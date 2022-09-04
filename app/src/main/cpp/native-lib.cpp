@@ -97,6 +97,13 @@ frame_type_e getFrameType(int packetLen, char *data) {
 }
 
 
+void send_frame_to_java_list(jmethodID jmethodId, char *dataFrameBuf, jobject job, JNIEnv *subThreadEnv) {
+    jbyteArray jbDataA = subThreadEnv->NewByteArray(dataFrameLen);
+    subThreadEnv->SetByteArrayRegion(jbDataA, 0, dataFrameLen, (jbyte *) dataFrameBuf);
+    subThreadEnv->CallVoidMethod(job, jmethodId, jbDataA);
+    subThreadEnv->DeleteLocalRef(jbDataA);
+}
+
 void *sub_thread_process(void *args) {
 
     LOGD("Enter sub thread \n");
@@ -168,10 +175,12 @@ void *sub_thread_process(void *args) {
                 }
 
                 // 第2个包是S帧自己
-                jbyteArray jbA = subThreadEnv->NewByteArray(recvLen);
-                subThreadEnv->SetByteArrayRegion(jbA, 0, recvLen, (jbyte *) packetBuf);
-                subThreadEnv->CallVoidMethod(jniContext->instance, jmethodId, jbA);
-                subThreadEnv->DeleteLocalRef(jbA);
+                // jbyteArray jbA = subThreadEnv->NewByteArray(recvLen);
+                // subThreadEnv->SetByteArrayRegion(jbA, 0, recvLen, (jbyte *) packetBuf);
+                // subThreadEnv->CallVoidMethod(jniContext->instance, jmethodId, jbA);
+                // subThreadEnv->DeleteLocalRef(jbA);
+
+                send_frame_to_java_list(jmethodId, packetBuf, jniContext->instance, subThreadEnv);
 
             } else if (frameType == P_FRAME) {
                 jbyteArray jbA = subThreadEnv->NewByteArray(recvLen);
