@@ -137,10 +137,10 @@ public class MyDecoder {
     private void initDecoderFormat() {
 
         // mediaFormat = new MediaFormat("video/avc");
-        // mediaFormat = MediaFormat.createVideoFormat("video/avc", 640, 360);
-        mediaFormat = MediaFormat.createVideoFormat("video/avc", 1920, 1080);
+        mediaFormat = MediaFormat.createVideoFormat("video/avc", 640, 360);
+        //  mediaFormat = MediaFormat.createVideoFormat("video/avc", 1920, 1080);
         // mediaFormat.setString(MediaFormat.KEY_MIME, "video/avc");
-        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 25);
+        // mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 25);
         // mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible);
 
         // PIXEL_FORMAT_YUV_SEMIPLANAR_420

@@ -14,6 +14,7 @@ import android.widget.Button;
 import com.wulala.myapplicationudprcv.databinding.ActivityMainBinding;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, TextureView.SurfaceTextureListener {
 
@@ -67,10 +68,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     Thread thread;
 
-    public void getUdpPacket(byte[] data) {
-        if (data.length == 19 && data[4] == 0x67) {
+    public static String byte2HexStr(byte b) {
+        String charToHex = Integer.toHexString((char) b);
+        if (charToHex.length() > 2) {
+            charToHex = charToHex.substring(2);
+        } else if (charToHex.length() == 1) {
+            charToHex = "0" + charToHex;
+        }
+        return charToHex.toUpperCase(Locale.ROOT);
+    }
 
-            if (ifStarted == false && ifMediaDecoderConfigured) {
+    public void getUdpPacket(byte[] data) {
+        // Log.d(TAG, "got data len:" + data.length + ", data[4]: 0x" + byte2HexStr(data[4]));
+        // Log.d(TAG, "got data len:" + data.length);
+
+        if (data.length == 20 && data[4] == 0x67) {
+            Log.d(TAG, "got head");
+            if (!ifStarted && ifMediaDecoderConfigured) {
                 Log.d(TAG, "start decode");
                 mediaCodec.start();
                 ifStarted = true;

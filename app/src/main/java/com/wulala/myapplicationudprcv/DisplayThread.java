@@ -81,7 +81,7 @@ public class DisplayThread implements Runnable {
                     if (frameData == null) {
                         continue;
                     }
-                    // Log.d(TAG, "inputIndex: " + inputIndex);
+                    Log.d(TAG, "inputIndex: " + inputIndex);
                 }
 
             } catch (InterruptedException e) {

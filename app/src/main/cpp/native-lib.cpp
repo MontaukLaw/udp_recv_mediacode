@@ -14,9 +14,10 @@ extern "C" {
 #include <netinet/in.h>
 }
 
-#define PORT     54321
+#define PORT     54322
 #define UDP_PACKET_LEN  1500
-#define DATA_BUFFER_LEN 200000
+#define DATA_BUFFER_LEN 400000
+#define REMOTE_ALI_SERVER  "120.77.179.171" // 120.77.179.171
 
 typedef enum {
     S_FRAME = 1,
@@ -57,9 +58,25 @@ bool ifFrameStarted(char *data) {
 }
 
 frame_type_e getFrameType(int packetLen, char *data) {
+    if (ifFrameStarted(data)) {
+        if (data[4] == 0x67) {
+            return S_FRAME;
+        } else if (data[4] == 0x68) {
+            return P_FRAME;
+        } else if (data[4] == 0x06) {
+            return E_FRAME;
+        } else {
+            return D_START_PACKET;
+        }
+    } else {
+        return D_REST_PACKET;
+    }
+}
+
+frame_type_e getFrameTypeOld(int packetLen, char *data) {
 
     if (ifFrameStarted(data)) {
-        if (packetLen == 19) {
+        if (packetLen == 19 || packetLen == 20) {
             return S_FRAME;
         } else if (packetLen == 8) {
             return P_FRAME;
@@ -71,29 +88,6 @@ frame_type_e getFrameType(int packetLen, char *data) {
     } else {
         return D_REST_PACKET;
     }
-
-//    static bool ifGetEPacket = false;
-//    if (ifFrameStarted(data)) {
-//        if (packetLen == 19) {
-//            ifGetEPacket = false;
-//            return S_FRAME;
-//        } else if (packetLen == 8) {
-//            ifGetEPacket = false;
-//            return P_FRAME;
-//        } else if (packetLen == 9) {
-//            ifGetEPacket = true;
-//            return E_FRAME;
-//        } else {
-//            if(ifGetEPacket){
-//                return D_START_PACKET;
-//            }
-//            ifGetEPacket = false;
-//            return D_START_PACKET;
-//        }
-//    } else {
-//        ifGetEPacket = false;
-//        return D_REST_PACKET;
-//    }
 }
 
 
@@ -104,10 +98,12 @@ void send_frame_to_java_list(jmethodID jmethodId, char *dataFrameBuf, jobject jo
     subThreadEnv->DeleteLocalRef(jbDataA);
 }
 
+// 20220919 改为tcp连接
 void *sub_thread_process(void *args) {
 
     LOGD("Enter sub thread \n");
     int sockfd;
+    int rtn;
     struct sockaddr_in servaddr, cliaddr;
 
     char packetBuf[UDP_PACKET_LEN];   // udp包最大是1400
@@ -115,24 +111,35 @@ void *sub_thread_process(void *args) {
     char dataFrameBuf[DATA_BUFFER_LEN];
 
     // Creating socket file descriptor
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    // 改为stream的tcp流
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        // if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         LOGD("socket creation failed");
         return nullptr;
     }
+
+    printf("sockfd:%d\n", sockfd);
 
     memset(&servaddr, 0, sizeof(servaddr));
     memset(&cliaddr, 0, sizeof(cliaddr));
 
     servaddr.sin_family = AF_INET; // IPv4
-    servaddr.sin_addr.s_addr = INADDR_ANY;
+    // servaddr.sin_addr.s_addr = INADDR_ANY;
+    inet_pton(AF_INET, REMOTE_ALI_SERVER, (struct in_addr *) &servaddr.sin_addr.s_addr);
     servaddr.sin_port = htons(PORT);
 
-    if (bind(sockfd, (const struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
-        LOGD("bind failed");
+    rtn = connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
+    if (rtn < 0) {
+        LOGD("connect failed");
         return nullptr;
     }
+    // bind 部分多余的好像
+    // if (bind(sockfd, (const struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
+    // LOGD("bind failed");
+    // return nullptr;
+    // }
 
-    socklen_t clintAddrSize = sizeof(sockaddr_in);
+    // socklen_t clintAddrSize = sizeof(sockaddr_in);
     int recvLen;
 
     struct Jni_Context *jniContext = static_cast<Jni_Context *>(args);
@@ -155,10 +162,18 @@ void *sub_thread_process(void *args) {
     jmethodID jmethodId = subThreadEnv->GetMethodID(mainActivityClass, "getUdpPacket", "([B)V");
 
     while (ifSubThreadRunning) {
-        recvLen = recvfrom(sockfd, (char *) packetBuf, UDP_PACKET_LEN, MSG_WAITALL, (struct sockaddr *) &cliaddr, &clintAddrSize);
+        // recvLen = recvfrom(sockfd, (char *) packetBuf, UDP_PACKET_LEN, MSG_WAITALL, (struct sockaddr *) &cliaddr, &clintAddrSize);
+        recvLen = read(sockfd, (char *) packetBuf, sizeof(packetBuf)); //, MSG_WAITALL, (struct sockaddr *) &cliaddr, &clintAddrSize);
+        if (recvLen == 0) {
+            usleep(1);
+            continue;
+        } else if (recvLen > 0) {
+            if (recvLen < 30) {
 
-        if (recvLen > 0) {
-            // LOGD("Packet size :%d type: 0x%02x", recvLen, packetBuf[5]);
+                LOGD("Packet size :%d type: 0x%02x", recvLen, packetBuf[4]);
+            }
+            usleep(1);
+            continue;
             frame_type_e frameType = getFrameType(recvLen, packetBuf);
 
             if (frameType == S_FRAME) {
@@ -175,12 +190,12 @@ void *sub_thread_process(void *args) {
                 }
 
                 // 第2个包是S帧自己
-                // jbyteArray jbA = subThreadEnv->NewByteArray(recvLen);
-                // subThreadEnv->SetByteArrayRegion(jbA, 0, recvLen, (jbyte *) packetBuf);
-                // subThreadEnv->CallVoidMethod(jniContext->instance, jmethodId, jbA);
-                // subThreadEnv->DeleteLocalRef(jbA);
+                jbyteArray jbA = subThreadEnv->NewByteArray(recvLen);
+                subThreadEnv->SetByteArrayRegion(jbA, 0, recvLen, (jbyte *) packetBuf);
+                subThreadEnv->CallVoidMethod(jniContext->instance, jmethodId, jbA);
+                subThreadEnv->DeleteLocalRef(jbA);
 
-                send_frame_to_java_list(jmethodId, packetBuf, jniContext->instance, subThreadEnv);
+                // send_frame_to_java_list(jmethodId, packetBuf, jniContext->instance, subThreadEnv);
 
             } else if (frameType == P_FRAME) {
                 jbyteArray jbA = subThreadEnv->NewByteArray(recvLen);
@@ -222,7 +237,7 @@ void *sub_thread_process(void *args) {
         usleep(1);
     }
 
-// 5. 结束线程
+    // 5. 结束线程
     ::jvm->DetachCurrentThread();
 
     LOGD("Sub thread finished.");
@@ -236,7 +251,6 @@ pthread_t pid;
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_wulala_myapplicationudprcv_MainActivity_threadTest(JNIEnv *env, jobject thiz) {
-
 
     jniContext.jniEnv = env;
     // jniContext.instance = thiz;  // 这样不成立, 因为jobject不可以跨函数调用
