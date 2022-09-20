@@ -11,7 +11,7 @@ public class H264FrameProducer {
     private final static String TAG = H264FrameProducer.class.getSimpleName();
 
     // 缓冲队列长度
-    public static final int QUEUE_NUMBER = 20;
+    public static final int QUEUE_NUMBER = 200;
 
     private BlockingQueue<byte[]> h264FrameQueue = new LinkedBlockingQueue<>();
 

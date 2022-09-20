@@ -15,9 +15,10 @@ extern "C" {
 }
 
 #define PORT     54322
-#define UDP_PACKET_LEN  1500
-#define DATA_BUFFER_LEN 400000
+#define UDP_PACKET_LEN  1000
+#define DATA_BUFFER_LEN 800000
 #define REMOTE_ALI_SERVER  "120.77.179.171" // 120.77.179.171
+// #define REMOTE_ALI_SERVER  "192.168.31.18" // 120.77.179.171
 
 typedef enum {
     S_FRAME = 1,
@@ -59,24 +60,7 @@ bool ifFrameStarted(char *data) {
 
 frame_type_e getFrameType(int packetLen, char *data) {
     if (ifFrameStarted(data)) {
-        if (data[4] == 0x67) {
-            return S_FRAME;
-        } else if (data[4] == 0x68) {
-            return P_FRAME;
-        } else if (data[4] == 0x06) {
-            return E_FRAME;
-        } else {
-            return D_START_PACKET;
-        }
-    } else {
-        return D_REST_PACKET;
-    }
-}
-
-frame_type_e getFrameTypeOld(int packetLen, char *data) {
-
-    if (ifFrameStarted(data)) {
-        if (packetLen == 19 || packetLen == 20) {
+        if (packetLen == 20) {
             return S_FRAME;
         } else if (packetLen == 8) {
             return P_FRAME;
@@ -89,6 +73,23 @@ frame_type_e getFrameTypeOld(int packetLen, char *data) {
         return D_REST_PACKET;
     }
 }
+//
+//frame_type_e getFrameTypeOld(int packetLen, char *data) {
+//
+//    if (ifFrameStarted(data)) {
+//        if (packetLen == 19 || packetLen == 20) {
+//            return S_FRAME;
+//        } else if (packetLen == 8) {
+//            return P_FRAME;
+//        } else if (packetLen == 9) {
+//            return E_FRAME;
+//        } else {
+//            return D_START_PACKET;
+//        }
+//    } else {
+//        return D_REST_PACKET;
+//    }
+//}
 
 
 void send_frame_to_java_list(jmethodID jmethodId, char *dataFrameBuf, jobject job, JNIEnv *subThreadEnv) {
@@ -105,6 +106,8 @@ void *sub_thread_process(void *args) {
     int sockfd;
     int rtn;
     struct sockaddr_in servaddr, cliaddr;
+
+    bool ifStart = false;
 
     char packetBuf[UDP_PACKET_LEN];   // udp包最大是1400
 
@@ -163,18 +166,23 @@ void *sub_thread_process(void *args) {
 
     while (ifSubThreadRunning) {
         // recvLen = recvfrom(sockfd, (char *) packetBuf, UDP_PACKET_LEN, MSG_WAITALL, (struct sockaddr *) &cliaddr, &clintAddrSize);
-        recvLen = read(sockfd, (char *) packetBuf, sizeof(packetBuf)); //, MSG_WAITALL, (struct sockaddr *) &cliaddr, &clintAddrSize);
-        if (recvLen == 0) {
-            usleep(1);
-            continue;
-        } else if (recvLen > 0) {
-            if (recvLen < 30) {
+        recvLen = read(sockfd, (char *) packetBuf, sizeof(packetBuf)); // MSG_WAITALL, (struct sockaddr *) &cliaddr, &clintAddrSize);
+        // LOGD("Packet size :%d ", recvLen);
+        // usleep(1);
+        if (recvLen > 0) {
+            // if (recvLen < 30) {
+            // LOGD("Packet size :%d type: 0x%02x", recvLen, packetBuf[4]);
+            // }
 
-                LOGD("Packet size :%d type: 0x%02x", recvLen, packetBuf[4]);
-            }
-            usleep(1);
-            continue;
             frame_type_e frameType = getFrameType(recvLen, packetBuf);
+
+            if (!ifStart) {
+                if (frameType == S_FRAME) {
+                    ifStart = true;
+                }else{
+                    continue;
+                }
+            }
 
             if (frameType == S_FRAME) {
 
@@ -235,6 +243,7 @@ void *sub_thread_process(void *args) {
         // subThreadEnv->CallVoidMethod(jniContext->instance, jmethodId);
 
         usleep(1);
+
     }
 
     // 5. 结束线程
